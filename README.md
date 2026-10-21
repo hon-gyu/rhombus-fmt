@@ -18,6 +18,7 @@ Rhombus repository, `rhombus-fmt.rkt` changes 1.8% of lines and Topiary 28%.
 ```sh
 racket rhombus-fmt.rkt FILE ...        # print formatted files
 racket rhombus-fmt.rkt -i FILE ...     # rewrite in place
+racket rhombus-fmt.rkt < IN > OUT      # format stdin to stdout
 ```
 
 Needs Racket with `shrubbery-lib`.

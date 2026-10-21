@@ -1,8 +1,9 @@
 #lang racket/base
 ;; A Rhombus formatter that keeps aligned indentation.
 ;;
-;; Usage: racket rhombus-fmt.rkt [-i] [--no-check] FILE ...
-;;   Prints the formatted FILE, or with `-i` rewrites it in place.
+;; Usage: racket rhombus-fmt.rkt [-i] [--no-check] [FILE ...]
+;;   Prints the formatted FILE, or with `-i` rewrites it in place. With no
+;;   FILE, formats stdin to stdout.
 ;;   `--no-check` skips reading the result back, for debugging.
 ;;
 ;; Line breaks are kept. Within a line, whitespace between tokens is
@@ -326,14 +327,21 @@
      #:args files
      files))
   (define failed? #f)
-  (for ([f (in-list files)])
-    (define text (call-with-input-file f port->string))
+  ;; Formats `text` and passes the old and new text to `k`
+  (define (run name text k)
     (with-handlers ([exn:fail? (lambda (e)
                                  (set! failed? #t)
-                                 (eprintf "~a: ~a\n" f (exn-message e)))])
-      (define new (format-text text))
-      (if (in-place?)
-          (unless (equal? new text)
-            (call-with-output-file f (lambda (o) (write-string new o)) #:exists 'truncate))
-          (write-string new))))
+                                 (eprintf "~a: ~a\n" name (exn-message e)))])
+      (k text (format-text text))))
+  (if (null? files)
+      ;; no files: format stdin to stdout, as editors expect
+      (run "stdin" (port->string (current-input-port))
+           (lambda (text new) (void (write-string new))))
+      (for ([f (in-list files)])
+        (run f (call-with-input-file f port->string)
+             (lambda (text new)
+               (if (in-place?)
+                   (unless (equal? new text)
+                     (call-with-output-file f (lambda (o) (write-string new o)) #:exists 'truncate))
+                   (write-string new))))))
   (when failed? (exit 1)))
